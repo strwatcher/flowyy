@@ -267,7 +267,7 @@ export const FlowerGenerator: Component = () => {
     const svgData = new XMLSerializer().serializeToString(svg);
     const img = new Image();
 
-    canvas.width = 800; // Увеличенный размер для лучшего качества
+    canvas.width = 800;
     canvas.height = 800;
 
     const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
@@ -279,11 +279,37 @@ export const FlowerGenerator: Component = () => {
         const blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((b) => resolve(b!), "image/png")
         );
-        await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob }),
-        ]);
+
+        // Проверяем, поддерживается ли ClipboardItem
+        if (typeof ClipboardItem !== "undefined") {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+        } else {
+          // Для iOS создаем временную ссылку для скачивания
+          const downloadUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = "flowwy-flower.png";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(downloadUrl);
+        }
       } catch (err) {
         console.error("Failed to copy:", err);
+        // В случае ошибки тоже предлагаем скачать
+        const blob = await new Promise<Blob>((resolve) =>
+          canvas.toBlob((b) => resolve(b!), "image/png")
+        );
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = "flowwy-flower.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
       }
       URL.revokeObjectURL(url);
     };
@@ -308,7 +334,9 @@ export const FlowerGenerator: Component = () => {
               onClick={copyToClipboard}
               class="w-full bg-white text-[#2D3250] border-2 border-[#2D3250] px-6 py-3 rounded-full hover:bg-gray-50 transition-colors text-sm sm:text-base"
             >
-              Скопировать цветочек
+              {typeof ClipboardItem !== "undefined"
+                ? "Скопировать цветочек"
+                : "Скачать цветочек"}
             </button>
           </div>
         </div>
