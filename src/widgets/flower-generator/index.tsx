@@ -260,6 +260,20 @@ export const FlowerGenerator: Component = () => {
     onRegenerateFlower: regenerateFlower,
   });
 
+  const isIOS = () => {
+    return (
+      [
+        "iPad Simulator",
+        "iPhone Simulator",
+        "iPod Simulator",
+        "iPad",
+        "iPhone",
+        "iPod",
+      ].includes(navigator.platform) ||
+      (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+    );
+  };
+
   const copyToClipboard = async () => {
     const svg = document.querySelector("svg") as SVGSVGElement;
     const canvas = document.createElement("canvas");
@@ -280,13 +294,11 @@ export const FlowerGenerator: Component = () => {
           canvas.toBlob((b) => resolve(b!), "image/png")
         );
 
-        // Проверяем, поддерживается ли ClipboardItem
-        if (typeof ClipboardItem !== "undefined") {
+        if (!isIOS() && typeof ClipboardItem !== "undefined") {
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
         } else {
-          // Для iOS создаем временную ссылку для скачивания
           const downloadUrl = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = downloadUrl;
@@ -298,7 +310,6 @@ export const FlowerGenerator: Component = () => {
         }
       } catch (err) {
         console.error("Failed to copy:", err);
-        // В случае ошибки тоже предлагаем скачать
         const blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((b) => resolve(b!), "image/png")
         );
@@ -334,7 +345,7 @@ export const FlowerGenerator: Component = () => {
               onClick={copyToClipboard}
               class="w-full bg-white text-[#2D3250] border-2 border-[#2D3250] px-6 py-3 rounded-full hover:bg-gray-50 transition-colors text-sm sm:text-base"
             >
-              {typeof ClipboardItem !== "undefined"
+              {!isIOS() && typeof ClipboardItem !== "undefined"
                 ? "Скопировать цветочек"
                 : "Скачать цветочек"}
             </button>
